@@ -208,6 +208,7 @@ Dado o grafo abaixo, responda ao que se pede:
 
 - **a)** Represente todos os caminhos possíveis entre os vértices 5 e 1:
 
+  ```plaintext
   5 -> 0 -> 2 -> 4 -> 1
   5 -> 0 -> 2 -> 4 -> 9 -> 8 -> 3 -> 1
   5 -> 0 -> 2 -> 4 -> 9 -> 8 -> 7 -> 6 -> 1
@@ -239,9 +240,11 @@ Dado o grafo abaixo, responda ao que se pede:
   5 -> 9 -> 8 -> 7 -> 2 -> 0 -> 3 -> 1
   5 -> 9 -> 8 -> 7 -> 2 -> 4 -> 1
   5 -> 9 -> 8 -> 7 -> 6 -> 1
+  ```
 
 - **b)** Represente todos os caminhos possíveis entre os vértices 9 e 3:
 
+  ```plaintext
   9 -> 4 -> 1 -> 3
   9 -> 4 -> 1 -> 6 -> 5 -> 0 -> 2 -> 7 -> 8 -> 3
   9 -> 4 -> 1 -> 6 -> 5 -> 0 -> 3
@@ -273,57 +276,49 @@ Dado o grafo abaixo, responda ao que se pede:
   9 -> 8 -> 7 -> 6 -> 1 -> 4 -> 2 -> 0 -> 3
   9 -> 8 -> 7 -> 6 -> 5 -> 0 -> 2 -> 4 -> 1 -> 3
   9 -> 8 -> 7 -> 6 -> 5 -> 0 -> 3
+  ```
 
 Para resolução da questão 07 utilizei o algorítimo de Depth First Search (DFS) para busca exaustiva de todos os caminhos:
 
 ```python
 from dataclasses import dataclass
-from typing import NamedTuple
 
 
 @dataclass(frozen=True)
-class Vertice:
-    valor: int
+class Vertice[T]:
+    valor: T
 
 
-class Aresta(NamedTuple):
-    de: Vertice
-    para: Vertice
+class GrafoDirecionado[T]:
+    def __init__(self, vertices: list[Vertice[T]]) -> None:
+        n = len(vertices)
+
+        self._vertices: list[Vertice[T]] = vertices.copy()
+        self._vertices_lookup: dict[Vertice[T], int] = {v:i for i, v in enumerate(self._vertices)}
+        self._matriz_adjacencia: list[list[int]] = [[0 for _ in range(n)] for _ in range(n)]
+
+    def adicionar_aresta(self, de: Vertice[T], para: Vertice[T]) -> None:
+        de_index = self._vertices_lookup[de]
+        para_index = self._vertices_lookup[para]
+
+        self._matriz_adjacencia[de_index][para_index] = 1
+
+    def __getitem__(self, key: Vertice[T]) -> list[Vertice[T]]:
+        key_index = self._vertices_lookup[key]
+        vizinhos = enumerate(self._matriz_adjacencia[key_index])
+        vizinhos = (self._vertices[idx] for idx, value in vizinhos if value > 0)
+
+        return list(vizinhos)
 
 
-class GrafoDirecionado:
-    def __init__(self) -> None:
-        self._arestas: set[Aresta] = set()
-        self._lista_adjacencia: dict[Vertice, set[Vertice]] = {}
-
-    def adicionar_vertice(self, vertice: Vertice) -> None:
-        if vertice in self._lista_adjacencia:
-            return
-
-        self._lista_adjacencia[vertice] = set()
-
-    def adicionar_aresta(self, aresta: Aresta) -> None:
-        self.adicionar_vertice(aresta.de)
-        self.adicionar_vertice(aresta.para)
-
-        self._lista_adjacencia[aresta.de].add(aresta.para)
-        self._arestas.add(aresta)
-
-    def listar_adjacentes(self, vertice: Vertice) -> set[Vertice]:
-        if vertice not in self._lista_adjacencia:
-            raise ValueError("Vértice não está no Grafo")
-
-        return self._lista_adjacencia[vertice].copy()
-
-
-def buscar_caminhos(
-    grafo: GrafoDirecionado,
-    de: Vertice,
-    para: Vertice,
+def buscar_caminhos[T](
+    grafo: GrafoDirecionado[T],
+    de: Vertice[T],
+    para: Vertice[T],
 ):
-    caminhos: list[list[Vertice]] = []
+    caminhos: list[list[Vertice[T]]] = []
 
-    def dfs(vertice: Vertice, caminho: list[Vertice], visitados: set[Vertice]):
+    def dfs(vertice: Vertice[T], caminho: list[Vertice[T]], visitados: set[Vertice[T]]):
         caminho.append(vertice)
         visitados.add(vertice)
 
@@ -335,7 +330,7 @@ def buscar_caminhos(
 
         vizinhos_nao_visitados = filter(
             lambda v: v not in visitados,
-            grafo.listar_adjacentes(vertice),
+            grafo[vertice],
         )
 
         for vizinho in vizinhos_nao_visitados:
